@@ -53,10 +53,13 @@ du -sh /workspace/ComfyUI/models/*
 ls -la /workspace/ComfyUI/models/diffusion_models /workspace/ComfyUI/models/text_encoders /workspace/ComfyUI/models/vae /workspace/ComfyUI/models/loras
 
 # --- Start script for later restarts (Pod stop/start) ---
+# --enable-cors-header disables ComfyUI's origin check, which otherwise
+# returns HTTP 403 when the URL is reached by clicking a link from another
+# site (browser sends Sec-Fetch-Site: cross-site).
 cat > /workspace/start_comfyui.sh <<'EOF'
 #!/bin/bash
 cd /workspace/ComfyUI
-nohup python main.py --listen 0.0.0.0 --port 8188 > /workspace/comfyui.log 2>&1 &
+nohup python main.py --listen 0.0.0.0 --port 8188 --enable-cors-header > /workspace/comfyui.log 2>&1 &
 echo "ComfyUI started on port 8188 (log: /workspace/comfyui.log)"
 EOF
 chmod +x /workspace/start_comfyui.sh
