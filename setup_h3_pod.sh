@@ -28,17 +28,29 @@ pip install -q "huggingface_hub[cli]"
 pip install -q hf_transfer 2>/dev/null && export HF_HUB_ENABLE_HF_TRANSFER=1 || echo "hf_transfer unavailable, using standard download"
 
 # --- H3 model files (~42 GB) from Comfy-Org/MiniMax-H3 ---
+# NOTE: huggingface_hub 1.x dropped the `huggingface-cli` console script (now `hf`),
+# so download via the Python API instead — robust across versions.
 echo "--- Downloading H3 model files ---"
-REPO=Comfy-Org/MiniMax-H3
-M=/workspace/ComfyUI/models
-huggingface-cli download "$REPO" diffusion_models/minimax_h3_fl2va_pruned_int8_convrot.safetensors --local-dir "$M" --local-dir-use-symlinks False
-huggingface-cli download "$REPO" text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors --local-dir "$M" --local-dir-use-symlinks False
-huggingface-cli download "$REPO" vae/minimax_h3_video_vae_int8_convrot.safetensors --local-dir "$M" --local-dir-use-symlinks False
-huggingface-cli download "$REPO" vae/minimax_h3_audio_vae_fp32.safetensors --local-dir "$M" --local-dir-use-symlinks False
-huggingface-cli download "$REPO" loras/minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors --local-dir "$M" --local-dir-use-symlinks False
+python3 -c "import huggingface_hub; print('huggingface_hub', huggingface_hub.__version__)"
+hf_get() {
+  python3 - "$1" <<'PYEOF'
+import sys
+from huggingface_hub import hf_hub_download
+p = hf_hub_download(repo_id="Comfy-Org/MiniMax-H3", filename=sys.argv[1],
+                    local_dir="/workspace/ComfyUI/models", local_dir_use_symlinks=False)
+print("downloaded:", p)
+PYEOF
+}
+# Transformer: FP8 scaled — Comfy-Org recommends FP8 when PyTorch is not on CUDA 13,
+# and this Pod's torch is CUDA 12.9. (Template default is the INT8 ConvRot file.)
+hf_get diffusion_models/minimax_h3_fl2va_pruned_fp8_scaled.safetensors
+hf_get text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors
+hf_get vae/minimax_h3_video_vae_int8_convrot.safetensors
+hf_get vae/minimax_h3_audio_vae_fp32.safetensors
+hf_get loras/minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors
 echo "--- Model files on disk ---"
-du -sh "$M"/*
-ls -la "$M/diffusion_models" "$M/text_encoders" "$M/vae" "$M/loras"
+du -sh /workspace/ComfyUI/models/*
+ls -la /workspace/ComfyUI/models/diffusion_models /workspace/ComfyUI/models/text_encoders /workspace/ComfyUI/models/vae /workspace/ComfyUI/models/loras
 
 # --- Start script for later restarts (Pod stop/start) ---
 cat > /workspace/start_comfyui.sh <<'EOF'
