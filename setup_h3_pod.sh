@@ -52,6 +52,13 @@ echo "--- Model files on disk ---"
 du -sh /workspace/ComfyUI/models/*
 ls -la /workspace/ComfyUI/models/diffusion_models /workspace/ComfyUI/models/text_encoders /workspace/ComfyUI/models/vae /workspace/ComfyUI/models/loras
 
+# --- Custom nodes: RunPod balance display ---
+echo "--- Installing RunPod balance custom node ---"
+mkdir -p /workspace/ComfyUI/custom_nodes/runpod_balance
+curl -sSL https://raw.githubusercontent.com/zk3u5pp-ops/h3-pod/main/comfyui_nodes/runpod_balance/__init__.py \
+  -o /workspace/ComfyUI/custom_nodes/runpod_balance/__init__.py
+python3 -c "import ast; ast.parse(open('/workspace/ComfyUI/custom_nodes/runpod_balance/__init__.py').read()); print('runpod_balance node OK')"
+
 # --- Start script for later restarts (Pod stop/start) ---
 # --enable-cors-header disables ComfyUI's origin check, which otherwise
 # returns HTTP 403 when the URL is reached by clicking a link from another
